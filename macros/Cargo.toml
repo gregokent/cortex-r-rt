@@ -1,0 +1,22 @@
+[package]
+name = "cortex-r-rt-macros"
+version = "0.1.0"
+authors = ["Gregory Kent <gregory.c.kent2.civ@mail.mil>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "0.6.6"
+proc-macro2 = "0.4.15"
+
+[dependencies.syn]
+features = ["extra-traits", "full"]
+version = "0.14.8"
+
+[dependencies.rand]
+version = "0.5.5"
+default-features = false
+
+[dev-dependencies]
+cortex-r-rt = { path = "..", version = "0.1.0" }
