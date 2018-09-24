@@ -23,24 +23,27 @@
 INCLUDE memory.x
 
 /* # Entry point = reset vector */
-ENTRY(Reset);
-EXTERN(__RESET_VECTOR); /* depends on the `Reset` symbol */
+
+ENTRY(Reset); 
+/*EXTERN(__RESET_VECTOR); *//* depends on the `Reset` symbol */
 
 /* # Exception vectors */
 /* This is effectively weak aliasing at the linker level */
 /* The user can override any of these aliases by defining the corresponding symbol themselves (cf.
    the `exception!` macro) */
-EXTERN(__EXCEPTIONS); /* depends on all the these PROVIDED symbols */
-
+   /*
+EXTERN(__EXCEPTIONS);*/  /* depends on all the these PROVIDED symbols */
 EXTERN(DefaultHandler);
+/*
+*/
 
 PROVIDE(UndefinedEntry = DefaultHandler);
 PROVIDE(SVCall = DefaultHandler);
 PROVIDE(PrefetchAbort = DefaultHandler);
 PROVIDE(DataAbort = DefaultHandler);
+PROVIDE(PhantomInterrupt = DefaultHandler);
 
 PROVIDE(DefaultHandler = DefaultHandler_);
-
 /* # Interrupt vectors */
 EXTERN(__INTERRUPTS); /* `static` variable similar to `__EXCEPTIONS` */
 
@@ -52,14 +55,13 @@ PROVIDE(__pre_init = DefaultPreInit);
 /* # Sections */
 SECTIONS
 {
-  PROVIDE(_stack_start = ORIGIN(RAM) + LENGTH(RAM));
-
   /* ## Sections in FLASH */
   /* ### Vector table */
   .vector_table ORIGIN(FLASH) :
   {
     /* Reset vector */
-    KEEP(*(.vector_table.reset_vector)); /* this is the `__RESET_VECTOR` symbol */
+    . = ALIGN(4);
+   /* KEEP(*(.vector_table.reset_vector));*/ /* this is the `__RESET_VECTOR` symbol */
     __reset_vector = .;
 
     /* Exceptions */
@@ -104,7 +106,7 @@ SECTIONS
 
   .stack (NOLOAD) :
   {
-    . = . + LENGTH(STACK)    
+    . = . + LENGTH(STACK);
   } > STACK
 
   /* ### .bss */
@@ -138,8 +140,8 @@ SECTIONS
 
   .vim (NOLOAD) : ALIGN(4)
   {
-    KEEP(*(.vim_table .vim_table.*))
-    . = ALIGN(4)
+    KEEP(*(.vim_table .vim_table.*));
+    . = ALIGN(4);
   } > VIMRAM
 
 }
@@ -170,16 +172,18 @@ BUG(cortex-m-rt): .bss is not 4-byte aligned");
 ASSERT(__sheap % 4 == 0, "
 BUG(cortex-m-rt): start of .heap is not 4-byte aligned");
 
+
 /* # Position checks */
 
 /* ## .vector_table */
-ASSERT(__reset_vector == ADDR(.vector_table) + 0x8, "
+
+ASSERT(__reset_vector == ADDR(.vector_table) , "
 BUG(cortex-m-rt): the reset vector is missing");
 
-ASSERT(__eexceptions == ADDR(.vector_table) + 0x40, "
+ASSERT(__eexceptions == ADDR(.vector_table) + 0x38, "
 BUG(cortex-m-rt): the exception vectors are missing");
 
-ASSERT(SIZEOF(.vector_table) == 0x20, "
+ASSERT(SIZEOF(.vector_table) == 0x38, "
 ERROR(cortex-m-rt): The interrupt vectors are missing.
 Possible solutions, from most likely to less likely:
 - Link to a svd2rust generated device crate
@@ -203,6 +207,4 @@ Dynamic relocations are not supported. If you are linking to C code compiled usi
 the 'cc' crate then modify your build script to compile the C code _without_
 the -fPIC flag. See the documentation of the `cc::Build.pic` method for details.");
 
-ASSERT(SIZEOF(.vim) == ORIGIN(VIMRAM) + LENGTH(VIMRAM), "
-ERROR(cortex-r-rt): Vim RAM is missing");
 /* Do not exceed this mark in the error messages above                                    | */

@@ -7,3 +7,9 @@ authors = ["Gregory Kent <gregory.c.kent2.civ@mail.mil>"]
 [dependencies]
 r0 = "0.2.1"
 cortex-r-rt-macros = { path = "macros", version = "0.1.0" }
+
+[dev-dependencies]
+panic-halt = "0.2.0"
+
+[features]
+device = []

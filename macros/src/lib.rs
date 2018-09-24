@@ -13,7 +13,7 @@ use rand::Rng;
 use rand::SeedableRng;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use syn::{FnArg, Ident, Item, ItemFn, ItemStatic, ReturnType, Stmt, Type, Visibility};
+use syn::{Ident, Item, ItemFn, ItemStatic, ReturnType, Stmt, Type, Visibility};
 
 static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
 
@@ -263,19 +263,15 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
     let ident = f.ident;
 
     enum Exception {
-        DefaultHandler,
-        HardFault,
         Other,
     }
 
     let ident_s = ident.to_string();
     let exn = match &*ident_s {
-        "DefaultHandler" => Exception::DefaultHandler,
-        "HardFault" => Exception::HardFault,
         // NOTE that at this point we don't check if the exception is available on the target (e.g.
         // MemoryManagement is not available on Cortex-M0)
-        "NonMaskableInt" | "MemoryManagement" | "BusFault" | "UsageFault" | "SecureFault"
-        | "SVCall" | "DebugMonitor" | "PendSV" | "SysTick" => Exception::Other,
+        "DefaultHandler" | "UndefinedEntry" | "SVCall" |
+            "PrefetchAbort" | "DataAbort" | "PhantomInterrupt" => Exception::Other,
         _ => panic!("{} is not a valid exception name", ident_s),
     };
 
@@ -287,93 +283,6 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let hash = random_ident();
     match exn {
-        Exception::DefaultHandler => {
-            assert!(
-                f.constness.is_none()
-                    && f.vis == Visibility::Inherited
-                    && f.abi.is_none()
-                    && f.decl.inputs.len() == 1
-                    && f.decl.generics.params.is_empty()
-                    && f.decl.generics.where_clause.is_none()
-                    && f.decl.variadic.is_none()
-                    && match f.decl.output {
-                        ReturnType::Default => true,
-                        ReturnType::Type(_, ref ty) => match **ty {
-                            Type::Tuple(ref tuple) => tuple.elems.is_empty(),
-                            Type::Never(..) => true,
-                            _ => false,
-                        },
-                    },
-                "`DefaultHandler` exception must have signature `[unsafe] fn(i16) [-> !]`"
-            );
-
-            let arg = match f.decl.inputs[0] {
-                FnArg::Captured(ref arg) => arg,
-                _ => unreachable!(),
-            };
-
-            quote!(
-                #[export_name = #ident_s]
-                #(#attrs)*
-                pub #unsafety extern "C" fn #hash() {
-                    extern crate core;
-
-                    const SCB_ICSR: *const u32 = 0xE000_ED04 as *const u32;
-
-                    let #arg = unsafe { core::ptr::read(SCB_ICSR) as u8 as i16 - 16 };
-
-                    #(#stmts)*
-                }
-            ).into()
-        }
-        Exception::HardFault => {
-            assert!(
-                f.constness.is_none()
-                    && f.vis == Visibility::Inherited
-                    && f.abi.is_none()
-                    && f.decl.inputs.len() == 1
-                    && match f.decl.inputs[0] {
-                        FnArg::Captured(ref arg) => match arg.ty {
-                            Type::Reference(ref r) => {
-                                r.lifetime.is_none() && r.mutability.is_none()
-                            }
-                            _ => false,
-                        },
-                        _ => false,
-                    }
-                    && f.decl.generics.params.is_empty()
-                    && f.decl.generics.where_clause.is_none()
-                    && f.decl.variadic.is_none()
-                    && match f.decl.output {
-                        ReturnType::Default => false,
-                        ReturnType::Type(_, ref ty) => match **ty {
-                            Type::Never(_) => true,
-                            _ => false,
-                        },
-                    },
-                "`HardFault` exception must have signature `[unsafe] fn(&ExceptionFrame) -> !`"
-            );
-
-            let arg = match f.decl.inputs[0] {
-                FnArg::Captured(ref arg) => arg,
-                _ => unreachable!(),
-            };
-
-            let pat = &arg.pat;
-
-            quote!(
-                #[export_name = "UserHardFault"]
-                #(#attrs)*
-                pub #unsafety extern "C" fn #hash(#arg) -> ! {
-                    extern crate cortex_m_rt;
-
-                    // further type check of the input argument
-                    let #pat: &cortex_m_rt::ExceptionFrame = #pat;
-
-                    #(#stmts)*
-                }
-            ).into()
-        }
         Exception::Other => {
             assert!(
                 f.constness.is_none()
@@ -391,8 +300,7 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
                             _ => false,
                         },
                     },
-                "`#[exception]` functions other than `DefaultHandler` and `HardFault` must \
-                 have signature `[unsafe] fn() [-> !]`"
+                "`#[exception]` function must have signature `[unsafe] fn() [-> !]`"
             );
 
             let (statics, stmts) = extract_static_muts(stmts);
@@ -421,10 +329,10 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
                 #[export_name = #ident_s]
                 #(#attrs)*
                 pub #unsafety extern "C" fn #hash() {
-                    extern crate cortex_m_rt;
+                    extern crate cortex_r_rt;
 
                     // check that this exception actually exists
-                    cortex_m_rt::Exception::#ident;
+                    cortex_r_rt::Exception::#ident;
 
                     #(#vars)*
 
