@@ -24,26 +24,25 @@ INCLUDE memory.x
 
 /* # Entry point = reset vector */
 
-ENTRY(Reset); 
-/*EXTERN(__RESET_VECTOR); *//* depends on the `Reset` symbol */
+ENTRY(resetEntry)
 
 /* # Exception vectors */
 /* This is effectively weak aliasing at the linker level */
 /* The user can override any of these aliases by defining the corresponding symbol themselves (cf.
    the `exception!` macro) */
-   /*
-EXTERN(__EXCEPTIONS);*/  /* depends on all the these PROVIDED symbols */
-EXTERN(DefaultHandler);
 /*
 */
 
-PROVIDE(UndefinedEntry = DefaultHandler);
-PROVIDE(SVCall = DefaultHandler);
-PROVIDE(PrefetchAbort = DefaultHandler);
-PROVIDE(DataAbort = DefaultHandler);
-PROVIDE(PhantomInterrupt = DefaultHandler);
+EXTERN(DefaultHandler);
+
+PROVIDE(undefEntry = DefaultHandler);
+PROVIDE(svcEntry = DefaultHandler);
+PROVIDE(prefetchEntry = DefaultHandler);
+PROVIDE(dataEntry = DefaultHandler);
+PROVIDE(phantomInterrupt = DefaultHandler);
 
 PROVIDE(DefaultHandler = DefaultHandler_);
+
 /* # Interrupt vectors */
 EXTERN(__INTERRUPTS); /* `static` variable similar to `__EXCEPTIONS` */
 
@@ -57,19 +56,15 @@ SECTIONS
 {
   /* ## Sections in FLASH */
   /* ### Vector table */
-  .vector_table ORIGIN(FLASH) :
+  .intvecs ORIGIN(FLASH) :
   {
     /* Reset vector */
     . = ALIGN(4);
-   /* KEEP(*(.vector_table.reset_vector));*/ /* this is the `__RESET_VECTOR` symbol */
-    __reset_vector = .;
-
-    /* Exceptions */
-    KEEP(*(.vector_table.exceptions)); /* this is the `__EXCEPTIONS` symbol */
-    __eexceptions = .;
+    KEEP(*(.intvecs)); /* this is the `__EXCEPTIONS` symbol */
+    . = ALIGN(4);
   } > FLASH
 
-  PROVIDE(_stext = ADDR(.vector_table) + SIZEOF(.vector_table));
+  PROVIDE(_stext = ADDR(.intvecs) + SIZEOF(.intvecs));
 
   /* ### .text */
   .text _stext :
@@ -106,7 +101,9 @@ SECTIONS
 
   .stack (NOLOAD) :
   {
+    . = ALIGN(8);
     . = . + LENGTH(STACK);
+    . = ALIGN(8);
   } > STACK
 
   /* ### .bss */
@@ -131,12 +128,6 @@ SECTIONS
     KEEP(*(.got .got.*));
   }
 
-  /* ## Discarded sections */
-  /DISCARD/ :
-  {
-    /* Unused exception related info that only wastes space */
-    *(.ARM.exidx.*);
-  }
 
   .vim (NOLOAD) : ALIGN(4)
   {
@@ -144,6 +135,12 @@ SECTIONS
     . = ALIGN(4);
   } > VIMRAM
 
+  /* ## Discarded sections */
+  /DISCARD/ :
+  {
+    /* Unused exception related info that only wastes space */
+    *(.ARM.exidx.*);
+  }
 }
 
 /* Do not exceed this mark in the error messages below                                    | */
@@ -176,13 +173,15 @@ BUG(cortex-m-rt): start of .heap is not 4-byte aligned");
 /* # Position checks */
 
 /* ## .vector_table */
-
+/*
 ASSERT(__reset_vector == ADDR(.vector_table) , "
 BUG(cortex-m-rt): the reset vector is missing");
-
+*/
+/*
 ASSERT(__eexceptions == ADDR(.vector_table) + 0x38, "
 BUG(cortex-m-rt): the exception vectors are missing");
-
+*/
+/*
 ASSERT(SIZEOF(.vector_table) == 0x38, "
 ERROR(cortex-m-rt): The interrupt vectors are missing.
 Possible solutions, from most likely to less likely:
@@ -190,9 +189,9 @@ Possible solutions, from most likely to less likely:
 - Disable the 'device' feature of cortex-m-rt to build a generic application (a dependency
 may be enabling it)
 - Supply the interrupt handlers yourself. Check the documentation for details.");
-
+*/
 /* ## .text */
-ASSERT(ADDR(.vector_table) + SIZEOF(.vector_table) <= _stext, "
+ASSERT(ADDR(.intvecs) + SIZEOF(.intvecs) <= _stext, "
 ERROR(cortex-m-rt): The .text section can't be placed inside the .vector_table section
 Set _stext to an address greater than the end of .vector_table (See output of `nm`)");
 

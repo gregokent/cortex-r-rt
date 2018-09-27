@@ -9,15 +9,9 @@ fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     has_fpu(&target);
-    
-    if target.starts_with("armeb") {
-        fs::copy(
-            format!("bin/{}.a", target),
-            out_dir.join("libcortex-r-rt.a"),
-        ).unwrap();
-        println!("cargo:rustc-link-lib=static=cortex-r-rt");
-    }
 
+    println!("cargo:rustc-link-search={}", out_dir.display());
+    
     // Put the linker script somewhere the linker can find it
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let link_x = include_bytes!("link.x.in");
@@ -43,8 +37,15 @@ INCLUDE device.x"#
         f
     };
 
-    println!("cargo:rustc-link-search={}", out.display());
+    if target.starts_with("armeb") {
+        fs::copy(
+            format!("bin/{}.a", target),
+            out_dir.join("libcortex-r-rt.a"),
+        ).unwrap();
+        println!("cargo:rustc-link-lib=static=cortex-r-rt");
+    }
 
+    println!("cargo:rustc-link-search={}", out_dir.display());
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=link.x.in");
 }
