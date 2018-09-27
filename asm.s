@@ -95,15 +95,14 @@ resetEntry:
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -------------------------------------------------------------------------*/
-    .section .text
-    .syntax unified
-    .cpu cortex-r4
-    .arm
 
 /*-------------------------------------------------------------------------------*/
 @ Initialize CPU Registers
 
     .section .text.coreInitRegisters
+    .syntax unified
+    .cpu cortex-r4
+    .arm
     .global coreInitRegisters
     .weak coreInitRegisters
     .type coreInitRegisters, %function
@@ -189,15 +188,15 @@ next4:
 
 /*-------------------------------------------------------------------------------*/
 @ Initialize Stack Pointers
-
-    .section .text.coreInitStackPointer_
+    .section .text.coreInitStackPointer
     .syntax unified
     .cpu cortex-r4
     .arm
+    .global coreInitStackPointer
+    .weak coreInitStackPointer
+    .type coreInitStackPointer, %function
 
-    .type coreInitStackPointer_, %function
-
-coreInitStackPointer_:
+coreInitStackPointer:
 
         cps   #17
         ldr   sp,       fiqSp
