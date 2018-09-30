@@ -30,11 +30,11 @@ pub fn heap_start() -> *mut u32 {
 
 #[allow(dead_code)]
 extern "C" {
-    pub fn undefEntry();
-    pub fn svcEntry();
-    pub fn prefetchEntry();
-    pub fn dataEntry();
-    pub fn phantomInterrupt();
+    pub fn UndefinedEntry();
+    pub fn SVCall();
+    pub fn PrefetchAbort();
+    pub fn DataAbort();
+    pub fn PhantomInterrupt();
 }
 
 #[doc(hidden)]

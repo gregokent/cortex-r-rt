@@ -44,16 +44,16 @@
   .size	resetEntry, .-resetEntry
 
     .extern Reset
-    .extern phantomInterrupt
+    .extern PhantomInterrupt
     .weak resetEntry
 
 resetEntry:
         b   Reset
-        b   undefEntry
-        b   svcEntry
-        b   prefetchEntry
-        b   dataEntry
-        b   phantomInterrupt
+        b   UndefinedEntry
+        b   SVCall
+        b   PrefetchAbort
+        b   DataAbort
+        b   PhantomInterrupt
         ldr pc,[pc,#-0x1b0]
         ldr pc,[pc,#-0x1b0]
 

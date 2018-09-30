@@ -35,11 +35,11 @@ ENTRY(resetEntry)
 
 EXTERN(DefaultHandler);
 
-PROVIDE(undefEntry = DefaultHandler);
-PROVIDE(svcEntry = DefaultHandler);
-PROVIDE(prefetchEntry = DefaultHandler);
-PROVIDE(dataEntry = DefaultHandler);
-PROVIDE(phantomInterrupt = DefaultHandler);
+PROVIDE(UndefinedEntry = DefaultHandler);
+PROVIDE(SVCall = DefaultHandler);
+PROVIDE(PrefetchAbort = DefaultHandler);
+PROVIDE(DataAbort = DefaultHandler);
+PROVIDE(PhantomInterrupt = DefaultHandler);
 
 PROVIDE(DefaultHandler = DefaultHandler_);
 
